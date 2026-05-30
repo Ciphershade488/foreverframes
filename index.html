@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <script>
+      (function() {
+        // 1. Early-registered global error listener to suppress fetch read-only setter errors
+        window.addEventListener('error', function(e) {
+          var msg = e.message || '';
+          if (msg.indexOf('fetch') !== -1 && (msg.indexOf('getter') !== -1 || msg.indexOf('property') !== -1)) {
+            e.preventDefault();
+            console.warn('Intercepted and suppressed fetch assignment error:', msg);
+          }
+        });
+
+        // 2. Safely attempt to define writable fetch property with getter/setter fallback
+        try {
+          var originalFetch = window.fetch;
+          var customFetch = originalFetch;
+          
+          function tryDefine(obj) {
+            try {
+              Object.defineProperty(obj, 'fetch', {
+                get: function() { return customFetch; },
+                set: function(val) { customFetch = val; },
+                configurable: true,
+                enumerable: true
+              });
+              return true;
+            } catch (err) {
+              return false;
+            }
+          }
+
+          if (!tryDefine(window)) {
+            tryDefine(Window.prototype);
+          }
+        } catch (globalErr) {
+          console.warn('Unable to patch fetch getter/setter:', globalErr);
+        }
+      })();
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Google AI Studio App</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
